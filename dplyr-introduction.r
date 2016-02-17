@@ -68,9 +68,17 @@ load("dummyData.RData")               # Loads in data - hook-by-hook
 
 ls()
 
-# dataOrig - a dataframe of SIMULATED survey data spanning 2003 to 2014. Each row
-#  represents a hook that caught a species of fish. The columns will be
-#  explained as we go along.
+# dataOrig - a dataframe of SIMULATED longline survey data spanning 2003 to
+#  2014.
+# Each row represents a hook that caught a species of fish. The columns will be
+#  explained as we go along. For now, the imporant information is:
+# At each 'block' (which is a location or a station), a set of up to eight
+#  skates is put in the water. Each skate consists of up to (approximately)
+#  100 hooks. When the longline is pulled back in, any fish caught on a hook
+#  is identified and recorded for that hook. Thus, each row corresponds to
+#  a hook on which a fish was caught, with columns identifying the year,
+#  block (station), skate, hook, species, and more.
+
 
 dataOrig                       # Not advisable due to size!
 
@@ -128,7 +136,7 @@ dataOrig
 ?
 
 
-# dplyr has the function: select
+# dplyr has the function: select()
 
 # To select three columns, do:
 
@@ -175,7 +183,7 @@ data
 
 
 
-# dplyr function to work on rows: filter
+# dplyr function to work on rows: filter()
 #  To remember which is which: filteR for Rows, seleCt for Columns.
 
 # Usual R, how to filter the dataframe to just have data for year 2003?
@@ -187,7 +195,7 @@ data
 
 ?
 
-# Using filter:
+# Using filter():
 
 dummy = filter(data, year == 2003)
 
@@ -211,20 +219,47 @@ dummy = filter(data, year %in% 2003:2010)
 
 dummy
 
-# Note that:
 
-dummy = filter(data, year == 2003, station %in% c(2001, 2020), skate %in% c(1,2), species %in% c(614, 442))
+# dplyr function: arrange()
+#  Reorders rows. Takes a dataframe and a set of column names (or more
+#  complicated expressions) to order the dataframe by. If more than one column
+#  name, then each additional column will break ties in values of preceding
+#  columns.
+
+dummy = arrange(data, species)
 
 dummy
 
-# I think filter retains the row order of the original dataframe.
+dummy = arrange(data, species, hooksPerSkate)
 
-# Note that this gives the same dataframe, but with rows reordered, because we
-#  filtered the rows in a different order:
+dummy
 
-dummy2 = filter(data, year == 2003, skate %in% c(1,2), species %in% c(614, 442), station %in% c(2001, 2020))
+# And for descending order:
 
-dummy2
+dummy = arrange(data, desc(species))
+
+dummy
+
+# dplyr function: distinct()
+#  return the unique values in a table
+
+dummy = distinct(select(dataOrig, species))
+
+dummy
+
+dummy = distinct(select(dataOrig, year, species))
+
+dummy
+
+summary(dummy)
+
+
+# So far, besides removing unwanted columns we have just manipulated the
+#  data frame. Now to do some analyses.
+
+data
+
+
 
 
 
