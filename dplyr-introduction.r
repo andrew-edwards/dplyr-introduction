@@ -62,12 +62,13 @@ figwidth = 5.7
 # Load in data set.
 
 load("dummyData.RData")               # Loads in data - hook-by-hook
-                                      #  and blockLocs0314 - locations of blocks,
+                                      #  and blockLocs0314 - locations of
+                                      #  stations (originally called blocks),
                                       #  not by year, all with keep=1
 
 ls()
 
-# dataOrig - a dataframe of simulated survey data spanning 2003 to 2014. Each row
+# dataOrig - a dataframe of SIMULATED survey data spanning 2003 to 2014. Each row
 #  represents a hook that caught a species of fish. The columns will be
 #  explained as we go along.
 
@@ -83,6 +84,10 @@ class(dataOrig)
 
 dataOrig = tbl_df(dataOrig)   # dplyr function:
 
+class(dataOrig)
+
+dataOrig
+
 # From ?tbl_df :
 # A data frame tbl wraps a local data frame. The main advantage to
 #      using a 'tbl_df' over a regular data frame is the printing: tbl
@@ -96,33 +101,41 @@ dataOrig = tbl_df(dataOrig)   # dplyr function:
 
 
 
-# Okay, how would we usually select just the columns with names year, block
+
+# First we want to rename the column 'block' with the more intuitive name
+#  'station'. How to do that usually in R?
+
+?
+
+
+
+
+# In dplyr, just
+dataOrig = rename(dataOrig, station = block)
+
+dataOrig
+
+# Okay, how would we usually select just the columns with names year, station
 #  and species?
 
-
+?
 
 # And how would we remove some un-needed columns? Often datasets have columns
 #  that aren't relevant to our analyses (or at least we first think they aren't).
 #  How to remove the columns with names:
 #  tripID, hookID, skateID, set, OLDobsHooksPerSkate, direction
 
+?
 
 
-
-
-
-
-
-# select
+# dplyr has the function: select
 
 # To select three columns, do:
 
-dummy = select(dataOrig, year, block, species)
-
-# or
+dummy = select(dataOrig, year, station, species)
 
 # This means select, from the dataframe dataOrig, the columns with names year,
-#  block and species.
+#  station and species.
 
 dummy
 
@@ -145,6 +158,8 @@ summary(data)
 
 dummy = select(dataOrig, -(year:species))
 
+dummy
+
 # See ?select for more options, such as start_with(), ends_with(), matches()
 #  and contains(). For example:
 
@@ -153,24 +168,67 @@ dummy = select(dataOrig, starts_with("s"))
 dummy             # Not really of interest in this example. 
 
 
-# So we have
+
+# So, having removed the un-needed columns (above) we have:
 
 data
 
-# filter works on rows.
-#  Remember which is which as filteR is Rows, seleCt is Columns.
+
+
+# dplyr function to work on rows: filter
+#  To remember which is which: filteR for Rows, seleCt for Columns.
+
+# Usual R, how to filter the dataframe to just have data for year 2003?
+
+?
+
+# And how about just to have the data for year 2003, station number 2001, skate
+#  number 1 and species code 614:
+
+?
+
+# Using filter:
 
 dummy = filter(data, year == 2003)
 
 dummy
 
-dummy = filter(data, year == 2003, block == 2001, skate == 1, species == 614)
+dummy = filter(data, year == 2003, station == 2001, skate == 1, species == 614)
+
+dummy
+
+# Can also use | for 'or':
+
+dummy = filter(data, year == 2003 | skate == 1)
+
+dummy
+
+summary(dummy)
+
+# And %in%:
+
+dummy = filter(data, year %in% 2003:2010)
+
+dummy
+
+# Note that:
+
+dummy = filter(data, year == 2003, station %in% c(2001, 2020), skate %in% c(1,2), species %in% c(614, 442))
+
+dummy
+
+# I think filter retains the row order of the original dataframe.
+
+# Note that this gives the same dataframe, but with rows reordered, because we
+#  filtered the rows in a different order:
+
+dummy2 = filter(data, year == 2003, skate %in% c(1,2), species %in% c(614, 442), station %in% c(2001, 2020))
+
+dummy2
 
 
 
-
-
-# So {\tt data} is a \Sexpr{dim(data)[1]}$\times$\Sexpr{dim(data)[2]} (local) dataOrig frame. Each row is a unique hook, with some that have no catch (species 999) to give a {\tt hooksPerSkate} for that skate. Has already been arranged in order of year and block. See {\tt iphc0314.Snw} for further details.
+# So {\tt data} is a \Sexpr{dim(data)[1]}$\times$\Sexpr{dim(data)[2]} (local) dataOrig frame. Each row is a unique hook, with some that have no catch (species 999) to give a {\tt hooksPerSkate} for that skate. Has already been arranged in order of year and station. See {\tt iphc0314.Snw} for further details.
 
 # \subsection{Check that bait field only changes for 2012}
 
@@ -196,17 +254,17 @@ latCutOff = 50.6; lon1=-130; lon2=-128.25 # a latitude cut-off value to
 
 
 # Maybe look at?:
-# skateSumm = select(data, year, block, skate, hooksPerSkate,
+# skateSumm = select(data, year, station, skate, hooksPerSkate,
 #    obsHooksPerSkate, effSkate, bait)
 # skateUniqHooks = unique(skateSumm)         # Picks unique rows
 # Now do with group_by, since then can automatically do the count for the species
-skateUniqHooks = summarise(group_by(data, year, block, skate), 
+skateUniqHooks = summarise(group_by(data, year, station, skate), 
    hooksPerSkate = unique(hooksPerSkate), 
    obsHooksPerSkate = unique(obsHooksPerSkate),
    bait = unique(bait), effSkate = unique(effSkate), 
    fishPerSkate = sum( (species == spCode) * catchCount))  
 
-if( dim(unique(select(data, year, block, skate)))[1] != dim(skateUniqHooks)[1])
+if( dim(unique(select(data, year, station, skate)))[1] != dim(skateUniqHooks)[1])
                                      { stop("check skateUniqHooks")}
 skateUniqHooks = mutate(skateUniqHooks, 
     chumObsHooksPerSkate =  obsHooksPerSkate * (bait == 110),
@@ -214,11 +272,11 @@ skateUniqHooks = mutate(skateUniqHooks,
                              # Add on field for no. hooks with chum, and how 
                              #  how many fish of spCode those hooks caught 
                              # (Just 2012 for now, will maybe be 2014+ - no)
-data.frame(head(filter(skateUniqHooks, year == 2012, block == 2002)))  
+data.frame(head(filter(skateUniqHooks, year == 2012, station == 2002)))  
 if( diff(range(select(filter(skateUniqHooks, year != 2012), obsHooksPerSkate)
       - select(filter(skateUniqHooks, year != 2012), chumObsHooksPerSkate) ))!=0)
                               {stop("check skateUniqHooks outside year 2012")}
-setUniqHooks = summarise( group_by(skateUniqHooks, year, block),
+setUniqHooks = summarise( group_by(skateUniqHooks, year, station),
     H_itOut = sum(hooksPerSkate), H_itObs = sum(obsHooksPerSkate), K_itAll = n(),
     K_itChum = sum(bait == 110), effSkate = unique(effSkate), 
     H_itObsChum = sum(chumObsHooksPerSkate), N_itAll = sum(fishPerSkate), 
@@ -230,12 +288,12 @@ setUniqHooks = summarise( group_by(skateUniqHooks, year, block),
     #  that had chum on. K_itAll is number of skates (all bait), K_itChum is
     #  number of skates with chum. N_itAll is number of spCode fish in set
     #  using all skates, N_itChum is just based on chum. 
-if( dim(unique(select(data, year, block)))[1] != dim(setUniqHooks)[1])
+if( dim(unique(select(data, year, station)))[1] != dim(setUniqHooks)[1])
                                      { stop("check setUniqHooks")}
 # Add column to make effSkateChum only be based on Chum bait:
 setUniqHooks = mutate(setUniqHooks, effSkateChum = effSkate * 
     H_itObsChum / H_itObs)
-setUniqHooks = arrange(setUniqHooks, year, block) # in case didn't stay in order
+setUniqHooks = arrange(setUniqHooks, year, station) # in case didn't stay in order
 # Early effSkateChum won't change:
 # data.frame(head(setUniqHooks))
 # 2012 effSkateChum now relate to number of observed chum-bait hooks (next section)
@@ -243,7 +301,7 @@ data.frame(head(filter(setUniqHooks, year == 2012)))
 # For 2012, all K_itChum values seem to be 4:
 summary((filter(setUniqHooks, year == 2012))$K_itChum)
 
-# Can see above that for 2012, block 2002, the three Redbanded were caught on non-Chum skates. 
+# Can see above that for 2012, station 2002, the three Redbanded were caught on non-Chum skates. 
 
 # \subsection{Check that {\tt effSkateChum} is somewhat consistent with number of observed chum-bait hooks}
  
@@ -253,7 +311,7 @@ setUniqHooksSamp = mutate(setUniqHooks, estEffSkateChum = H_itObsChum/100)
 as.data.frame(filter(setUniqHooksSamp, abs(estEffSkateChum - effSkateChum) > 1))
 as.data.frame(filter(setUniqHooksSamp, abs(estEffSkateChum - effSkateChum) >0.5))
 
-# Only a few examples (others should have been sorted out in manual tidying up before), I'd thought there might be more. None look too bad, block 2101 suggests a typo, but leave for now as not hugely in error.
+# Only a few examples (others should have been sorted out in manual tidying up before), I'd thought there might be more. None look too bad, station 2101 suggests a typo, but leave for now as not hugely in error.
 
 # And for 2012, it shouldn't be much more than 4:
 
@@ -269,7 +327,7 @@ setUniqHooks
 
 # Simplify to give a set-level dataframe with the correct terminology, containing just what is needed now:
 
-setVals0314 = select(setUniqHooks, year=year, block=block, # H_it = H_itObsChum, 
+setVals0314 = select(setUniqHooks, year=year, station=station, # H_it = H_itObsChum, 
     E_it = effSkateChum, N_it = N_itChum)
 setVals0314 = mutate(setVals0314, C_it = N_it / E_it)
 setVals0314
@@ -278,18 +336,18 @@ setVals0314
 # \subsubsection{Filter locations geography, to determine {\tt setVals0314keep}} 
          % Need all the setVals0314 for the maps
 
-# blockLocs0314 - a dataframe corresponding to each survey station 
-#  (called a  block), giving the longitude and latitude for each station, with
+# stationLocs0314 - a dataframe corresponding to each survey station 
+#  (called a  station), giving the longitude and latitude for each station, with
 #  an allowable range. The locations do not change each year (so there is no
 #  year in here).
 
 
-blockLocs0314[blockLocs0314$lat < latCutOff, "keep"] = 0    # don't keep some
+stationLocs0314[stationLocs0314$lat < latCutOff, "keep"] = 0    # don't keep some
 
-setVals0314keep= filter(setVals0314, block %in% 
-    filter(blockLocs0314, keep == 1)$block)  # Keep only blocks in geog. region
-# data = filter(dataOrig, block %in% 
-#    filter(blockLocs0314, keep == 1)$block)  # Keep only blocks in geog. region
+setVals0314keep= filter(setVals0314, station %in% 
+    filter(stationLocs0314, keep == 1)$station)  # Keep only stations in geog. region
+# data = filter(dataOrig, station %in% 
+#    filter(stationLocs0314, keep == 1)$station)  # Keep only stations in geog. region
 
 yearVals0314keep = summarise(group_by(setVals0314keep, year), n_t = n(), 
     setsWithSp = sum(N_it != 0), sum.C_it = sum(C_it))
@@ -315,43 +373,43 @@ setValsKeep = rbind(setVals1995keep, setVals1996keep, setVals0314keep)
 
 # % This was from IPHCjoin6.Snw.   Want it for the bootstrapping. And I think for the Keep for 03-12
 
-# \section{How many blocks never catch a \Sexpr{spName} for 2003 onwards?}
+# \section{How many stations never catch a \Sexpr{spName} for 2003 onwards?}
 
 # % Modifying from the 20-hook version, which presumably came from earlier full hook version. Add ..keep to things here.
 
-# Now to investigate blocks that never catch a \Sexpr{spName} for the stations being considered. Do for 2003$+$ ({\tt zeroBlocks0314}) etc, and easy to just filter on the 1995 and 1996 data. [At one point may have had {\tt zeroBlocks} containing all, but that doesn't make sense since names aren't consistent between years, so maybe things just got moved around].
-# % , but be aware that block names are different in 1995, 1996 and for 2003$+$. Check that none overlap:% Should do as map, not doing figure as gets messed up with funny block names for 1995 (and presumably 1996) data.
+# Now to investigate stations that never catch a \Sexpr{spName} for the stations being considered. Do for 2003$+$ ({\tt zeroStations0314}) etc, and easy to just filter on the 1995 and 1996 data. [At one point may have had {\tt zeroStations} containing all, but that doesn't make sense since names aren't consistent between years, so maybe things just got moved around].
+# % , but be aware that station names are different in 1995, 1996 and for 2003$+$. Check that none overlap:% Should do as map, not doing figure as gets messed up with funny station names for 1995 (and presumably 1996) data.
 
-#<<zeroBlocks0314>>=
+#<<zeroStations0314>>=
 # THESE WERE ALREADY COMMENTED....
-# yyy1 = intersect(filter(setValsKeep, year == 1995)$block, 
-#    filter(setValsKeep, year == 1996)$block) 
-#yyy2 = intersect(filter(setValsKeep, year == 1995)$block, 
-#    filter(setValsKeep, year == 2003)$block) 
-# yyy3 = intersect(filter(setValsKeep, year == 1996)$block, 
-#    filter(setValsKeep, year == 2003)$block) # blocks are same for 2003 onwards
-# if(length(yyy1) + length(yyy2) + length(yyy3) > 0) stop("check block names")
-# blockValsKeep = summarise(group_by(setValsKeep, block), totalN_it = sum(N_it))
-# postscript("blockValsKeep.eps", height = figheight, width = figwidth,
+# yyy1 = intersect(filter(setValsKeep, year == 1995)$station, 
+#    filter(setValsKeep, year == 1996)$station) 
+#yyy2 = intersect(filter(setValsKeep, year == 1995)$station, 
+#    filter(setValsKeep, year == 2003)$station) 
+# yyy3 = intersect(filter(setValsKeep, year == 1996)$station, 
+#    filter(setValsKeep, year == 2003)$station) # stations are same for 2003 onwards
+# if(length(yyy1) + length(yyy2) + length(yyy3) > 0) stop("check station names")
+# stationValsKeep = summarise(group_by(setValsKeep, station), totalN_it = sum(N_it))
+# postscript("stationValsKeep.eps", height = figheight, width = figwidth,
 #           horizontal=FALSE,  paper="special")  
-# plot(filter(blockValsKeep, totalN_it > 0), col="blue", xlab="Block", 
-#     ylab="Numbers caught in each block from 2003 onwards")
-# points(filter(blockValsKeep, totalN_it == 0), col="red", pch=20)
+# plot(filter(stationValsKeep, totalN_it > 0), col="blue", xlab="Station", 
+#     ylab="Numbers caught in each station from 2003 onwards")
+# points(filter(stationValsKeep, totalN_it == 0), col="red", pch=20)
 # dev.off()
 # END OF WHAT WAS ALREADY COMMENTED
-blockVals0314 = summarise(group_by(setVals0314, block), totalN_it = sum(N_it))
-zeroBlocks0314 = filter(blockVals0314, totalN_it == 0)$block # Blocks always 0
-nonZeroBlocks0314 = filter(blockVals0314, totalN_it > 0)$block  # Blocks with catch
-alwaysZero0314 = length(zeroBlocks0314)
+stationVals0314 = summarise(group_by(setVals0314, station), totalN_it = sum(N_it))
+zeroStations0314 = filter(stationVals0314, totalN_it == 0)$station # Stations always 0
+nonZeroStations0314 = filter(stationVals0314, totalN_it > 0)$station  # Stations with catch
+alwaysZero0314 = length(zeroStations0314)
 
-# Blocks we're keeping (think I calc using the above stuff for the figs anyway)
-blockVals0314keep = summarise(group_by(setVals0314keep, block), 
+# Stations we're keeping (think I calc using the above stuff for the figs anyway)
+stationVals0314keep = summarise(group_by(setVals0314keep, station), 
     totalN_it = sum(N_it))
-zeroBlocks0314keep = filter(blockVals0314keep, totalN_it == 0)$block 
-                                        # Blocks always 0
-nonZeroBlocks0314keep = filter(blockVals0314keep, totalN_it > 0)$block  
-                                        # Blocks with catch
-alwaysZero0314keep = length(zeroBlocks0314keep)
+zeroStations0314keep = filter(stationVals0314keep, totalN_it == 0)$station 
+                                        # Stations always 0
+nonZeroStations0314keep = filter(stationVals0314keep, totalN_it > 0)$station  
+                                        # Stations with catch
+alwaysZero0314keep = length(zeroStations0314keep)
 
 # \section{BCA bootstrap confidence intervals for all years}
 
@@ -402,7 +460,7 @@ for(i in 1:length(years))
 
 # Might want Figure \ref{fig:all2003mapA} referenced instead..... check IPHCjoin7, that had something about the extra map. See final RBR write up for text.
 
-# For the 2003$+$ series, Figure \ref{fig:all2003map} shows the locations of the \Sexpr{dim(blockLocs0314)[1] - length(nonZeroBlocks0314)} stations that never caught \Sexpr{spName} in any year, and the \Sexpr{length(nonZeroBlocks0314)} stations that caught it at least once.   **That's for all, not just the ones we're keeping.
+# For the 2003$+$ series, Figure \ref{fig:all2003map} shows the locations of the \Sexpr{dim(stationLocs0314)[1] - length(nonZeroStations0314)} stations that never caught \Sexpr{spName} in any year, and the \Sexpr{length(nonZeroStations0314)} stations that caught it at least once.   **That's for all, not just the ones we're keeping.
 
 # <<echo=FALSE, results=hide>>=
 postscript("all2003mapA.eps", height = figheight, width = figwidth,
@@ -410,9 +468,9 @@ postscript("all2003mapA.eps", height = figheight, width = figwidth,
 #expandPlot(mfrow=c(1,1),mar=c(2,2,0.5,0.5))
 expandPlot(mfrow=c(1,1),mar=c(1.8,2,1.0,0.5))
 plotBC(main = "All 2003+ stations")  #zlev=100)
-points(lat~lon, data=blockLocs0314, col="blue", cex=1) # , cex=0.6
+points(lat~lon, data=stationLocs0314, col="blue", cex=1) # , cex=0.6
 points(lat~lon, 
-      data=filter(blockLocs0314, block %in% nonZeroBlocks0314),
+      data=filter(stationLocs0314, station %in% nonZeroStations0314),
       col="blue", pch=20, cex=1.2) 
 legend("bottomleft", legend=c(paste("Never caught", shortName), 
        paste("Have caught", shortName)),
@@ -420,7 +478,7 @@ legend("bottomleft", legend=c(paste("Never caught", shortName),
 dev.off()
 # @
 
-# \onefig{all2003mapA}{Locations of all \Sexpr{dim(blockLocs0314)[1]} stations for the IPHC survey for 2003 onwards. There are \Sexpr{dim(blockLocs0314)[1] - length(nonZeroBlocks0314)} stations that never caught \Sexpr{spName} (blue open circles), and \Sexpr{length(nonZeroBlocks0314)} stations that did catch it at least once.}
+# \onefig{all2003mapA}{Locations of all \Sexpr{dim(stationLocs0314)[1]} stations for the IPHC survey for 2003 onwards. There are \Sexpr{dim(stationLocs0314)[1] - length(nonZeroStations0314)} stations that never caught \Sexpr{spName} (blue open circles), and \Sexpr{length(nonZeroStations0314)} stations that did catch it at least once.}
 
 # Do still want just 2003 onwards with the cutoff, so copying the above and
 #   editing based on iphcSerA20hooksYYR.Snw:
@@ -430,12 +488,12 @@ postscript("all2003mapAkeep.eps", height = figheight, width = figwidth,
            horizontal=FALSE,  paper="special")  
 expandPlot(mfrow=c(1,1),mar=c(1.8,2,1.0,0.5))
 plotBC(main = "All 2003-2012 and 2014 stations")  #zlev=100)
-points(lat~lon, data=blockLocs0314, col="blue", cex=1) # , cex=0.6
+points(lat~lon, data=stationLocs0314, col="blue", cex=1) # , cex=0.6
 points(lat~lon, 
-      data=filter(blockLocs0314, block %in% nonZeroBlocks0314),
+      data=filter(stationLocs0314, station %in% nonZeroStations0314),
       col="blue", pch=20, cex=1.2) 
 points(lat~lon, 
-      data=filter(blockLocs0314, keep == 0),
+      data=filter(stationLocs0314, keep == 0),
       col="black", pch=4, cex=1.2) 
 legend("bottomleft", 
       legend=c(paste("Never caught ", shortName),
@@ -444,7 +502,7 @@ legend("bottomleft",
        pch=c(1, 20, 4), pt.cex=c(1, 1.2, 1.2), col=c("blue", "blue", "black"))
 dev.off()
 
-# \onefig{all2003mapAkeep}{Locations of all \Sexpr{dim(blockLocs0314)[1]} stations for the IPHC survey for 2003 onwards. There are \Sexpr{dim(blockLocs0314)[1] - length(nonZeroBlocks0314)} stations that never caught \Sexpr{spName} (blue open circles), and \Sexpr{length(nonZeroBlocks0314)} stations that did catch it at least once. Black crosses indicate the \Sexpr{sum(blockLocs0314$keep == 0)} stations being excluded from the analyses.}   % $ 
+# \onefig{all2003mapAkeep}{Locations of all \Sexpr{dim(stationLocs0314)[1]} stations for the IPHC survey for 2003 onwards. There are \Sexpr{dim(stationLocs0314)[1] - length(nonZeroStations0314)} stations that never caught \Sexpr{spName} (blue open circles), and \Sexpr{length(nonZeroStations0314)} stations that did catch it at least once. Black crosses indicate the \Sexpr{sum(stationLocs0314$keep == 0)} stations being excluded from the analyses.}   % $ 
 
 
 
