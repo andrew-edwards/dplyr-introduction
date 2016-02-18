@@ -259,15 +259,127 @@ summary(dummy)
 
 data
 
+# dplyr function: mutate()
+# mutate adds a new column to the dataframe, where the new column
+#  is a function of existing columns.
+
+# Just select a few columns:
+dummy = select(data, year, station, skate, hooksPerSkate, obsHooksPerSkate)
+
+# hooksPerSkate is the number of hooks that were put in the water for each
+#  skate, and obsHooksPerSkate is the number of hooks that were actually
+#  observed by the person recording the data. We want to ask if there is
+#  a difference between these two numbers.
+# mutate() can give an extra column that is the difference between the two.
+
+dummy = mutate(dummy, difference = hooksPerSkate - obsHooksPerSkate)
+
+dummy
+
+# Lots of zeros, to just look at the non-zero values of difference:
+
+dummy2 = filter(dummy, difference > 0)
+
+dummy2
+
+# Note that each row still represents a hook.
+
+# With mutate() you can refer to columns that you are creating in the same
+#  command.
+
+dummy = select(data, year, station, skate, hooksPerSkate, obsHooksPerSkate)
+
+dummy    # No 'difference' column
+
+dummy2 = mutate(dummy, difference = hooksPerSkate - obsHooksPerSkate,
+    diffSquared = difference^2)      # last part refers to 'difference' column
+
+dummy2    
+
+
+
+# Okay, in usual R how would we get the total number of Yelloweye Rockfish
+#  (species code 442) caught in each year? So for each year, we need to add
+#  up the catchCount values for which the species code is 442.
+
+# catchCount is the number of that species caught on the hook (usually 1):
+summary(as.factor(data$catchCount))
+
+# First set spCode to be the species code, so we can just change this
+#  value here if we want to look at another species (good programming practice).
+spCode=442; spName="Yelloweye Rockfish" # spCodeIphc=89
+
+?
+
+
+
+
+
+
+# dplyr functions: summarise() and group_by()
+
+# I don't really use group_by on it's own, but it's helpful here to see
+#  that is just adds groups to the dataframe:
+dummy = group_by(data, year)
+
+dummy
+
+class(dummy)
+
+# So we grouped by year, and there are 11 groups, since we have the years:
+unique(data$year)
+
+# Back to our question: how would we get the total number of Yelloweye Rockfish
+#  (species code 442) caught in each year?
+# First extract just the data for the species we
+#  are interested in:
+
+dataSpCode = filter(data, species == spCode)
+
+dataSpCode
+
+# This groups the dataSpCode by year, and then, for each year, gives a new
+#  column 'total' that is the sum of the catchCount values in that year.
+catchSum = summarise( group_by(dataSpCode, year), total = sum(catchCount) ) 
+
+catchSum
+
+# So, that gives us the number of spCode fish caught in each year.
+
+# We could just do it all in one go on 'data':
+catchSum2 = summarise(group_by(dataSpCode, year), species = spCode,
+    total = sum(catchCount) ) 
+
+catchSum2
+
+# summarise() works on 'aggregate' functions, which take a vector of values
+#  and return a single number. Such as min(), max(), mean() etc. Some extra
+#  ones in dplyr are:
+
+# n() - the number of observations in the current group
+# n_distinct(x) - number of unique values in x
+# first(x), last(x), and nth(x, n).
+
+# For example, we can do the above calculation a different way, since
+#  there is only ever one of our species caught on a hook:
+summary(dataSpCode$catchCount)    # all ones
+
+catchSum3 = summarise(group_by(dataSpCode, year), species = spCode,
+    total = n() ) 
+# The n() counts the number of observations (rows) in each group
+catchSum3
+
+catchSum2 - catchSum3
+
 
 
 
 
 # So {\tt data} is a \Sexpr{dim(data)[1]}$\times$\Sexpr{dim(data)[2]} (local) dataOrig frame. Each row is a unique hook, with some that have no catch (species 999) to give a {\tt hooksPerSkate} for that skate. Has already been arranged in order of year and station. See {\tt iphc0314.Snw} for further details.
 
+# May use later:
 # \subsection{Check that bait field only changes for 2012}
-
-data %>% group_by(year, bait) %>% tally()  
+# data %>% group_by(year, bait) %>% tally()  
 
 # That's good, only 110 (chum salmon) used until 2011, then that and the other two in 2012. Use just the 110 values later.
 
@@ -276,162 +388,184 @@ data %>% group_by(year, bait) %>% tally()
 # Get unique set data from this hooks data set. First need to look at the skate level, and then sum the {\tt hookPerSkate}'s for each set. Also look at bait because that can be summarised at skate level. And add up the counts of a particular species for each skate. See Section \ref{sec:notation} for notation, some of which gets used here. [Some of this could maybe have been done in {\tt iphc0314.Snw}, but think I may have kept variable names the same in 20-hook analysis, so keep this all here to avoid any potential confusion.]
 
 
-# Now to look at a particular species:
-# Comment in one of these lines (shortName is for figure legends):
-# spCode=401; spName="Redbanded Rockfish"; shortName = "Redbanded"; spCodeIphc=90; spAbbr = RBR
-spCode=442; spName="Yelloweye Rockfish"; shortName = "Yelloweye"; spCodeIphc=89; spAbbr = "No YYR" 
-# spCode = 614; spName = "Pacific Halibut"; shortName = "Halibut"; spCodeIphc=1; spAbbr = "HAL" 
-# spCode = 044; spName = "North Pacific Spiny Dogfish"; shortName = "Dogfish"; spCodeIphc=54; spAbbr = "DOG"    # Get error in bca.ci, expected adjustment 'w' is infinite - for HAL too.
-
-latCutOff = 50.6; lon1=-130; lon2=-128.25 # a latitude cut-off value to 
-#  divide the area into northern and southern areas. lon1 and lon2 are to help
-#  draw a line on a map.
-
 
 # Maybe look at?:
 # skateSumm = select(data, year, station, skate, hooksPerSkate,
 #    obsHooksPerSkate, effSkate, bait)
 # skateUniqHooks = unique(skateSumm)         # Picks unique rows
 # Now do with group_by, since then can automatically do the count for the species
+
+
+
+# The stock-assessment interest in looking at these data is to obtain a
+#  relative index of abundance through time, to then be input for an
+#  assessment model. So a time series with one value for each year, where
+#  the value is aggregated across the spatial region. (In practice we quantify
+#  uncertainty also, but not today).
+
+# But, each skate does not have the same number of hooks. The column effSkate
+#  gives the effective skate number, which is, for each set, the effective
+#  number of hooks that were put out. A value for a set of effSkate = 8
+#  essentially means that that set contained 8 skates each of 100 hooks. 
+
+# So I wanted to summarise, for our species, the number of fish caught for each
+#  set, and then divide that by the effSkate, which will standardise the
+#  number of fish caught by each set (since with less hooks you'd expect to
+#  catch less fish).
+
+# So effSkate should be the same for each set. We can check that on our data,
+#  remembering that each line is a row.
+
+dummy = summarise(group_by(data, year, station), unique(effSkate))
+
+dummy
+
+# If effSkate was not the same for each set, then the above command would
+#  give an error, since unique(effSkate) would not take a single value.
+#  For example:
+
+data
+data[1,"effSkate"]
+
+data2 = data
+data2[1,"effSkate"] = 7
+data2[1,"effSkate"]
+
+# If I do the above command on data2 instead of data, then should get an
+#  error:
+
+dummy = summarise(group_by(data2, year, station), unique(effSkate))
+
+# So that's a check that our dataframe is what we expect - we have a row
+#  for each hook, but hooks from the same set all have the same effSkate
+#  number.
+
+# I first want to roll up the data to the skate level [bait is the bait used
+#  for that skate - not always the same!]:
+
 skateUniqHooks = summarise(group_by(data, year, station, skate), 
    hooksPerSkate = unique(hooksPerSkate), 
    obsHooksPerSkate = unique(obsHooksPerSkate),
    bait = unique(bait), effSkate = unique(effSkate), 
    fishPerSkate = sum( (species == spCode) * catchCount))  
 
+# This is a check that will fail if I messed up somewhere:
 if( dim(unique(select(data, year, station, skate)))[1] != dim(skateUniqHooks)[1])
                                      { stop("check skateUniqHooks")}
+
+# What is the bait issue?
+
+# This will do groups by year and bait, and then summarise the number of
+#  values (rows of skateUniqHooks) for each combination:
+
+summarise(group_by(skateUniqHooks, year, bait), n())
+
+# Can see that every year uses bait 110 (Chum Salmon), except 2010.
+#  In 2012 a bait
+#  experiment was done: for each set there were four consecutive skates
+#  with Chum Salmon, one skate with Pink Salmon and one skate with Walleye
+#  Pollock each, and two empty skates. It's possible that the catch rates
+#  are effected by the bait, which is why we are still working at the skate
+#  level.
+
+# So now we just want to have hook numbers and catch numbers for when
+#  Chum Salmon (code 110) was used as bait:
+
 skateUniqHooks = mutate(skateUniqHooks, 
     chumObsHooksPerSkate =  obsHooksPerSkate * (bait == 110),
     chumFishPerSkate =  fishPerSkate * (bait == 110))
-                             # Add on field for no. hooks with chum, and how 
-                             #  how many fish of spCode those hooks caught 
-                             # (Just 2012 for now, will maybe be 2014+ - no)
-data.frame(head(filter(skateUniqHooks, year == 2012, station == 2002)))  
-if( diff(range(select(filter(skateUniqHooks, year != 2012), obsHooksPerSkate)
-      - select(filter(skateUniqHooks, year != 2012), chumObsHooksPerSkate) ))!=0)
-                              {stop("check skateUniqHooks outside year 2012")}
+
+
+# Look at one station from 2012. Use data.frame command to force it to
+#  display all the columns, and head just displayes the first 6).
+data.frame(head( filter(skateUniqHooks, year == 2012, station == 2002)))
+
+
+# Now to round up to the set level:
+
 setUniqHooks = summarise( group_by(skateUniqHooks, year, station),
     H_itOut = sum(hooksPerSkate), H_itObs = sum(obsHooksPerSkate), K_itAll = n(),
     K_itChum = sum(bait == 110), effSkate = unique(effSkate), 
     H_itObsChum = sum(chumObsHooksPerSkate), N_itAll = sum(fishPerSkate), 
     N_itChum = sum(chumFishPerSkate))
-    # Unique sets, from hooks data, H_itOut is as I originally had and is the
-    #  hooks that go out (which I need for the numbering for first 20),H_itObs is
-    #  then just for the observed hooks, using new values. Will give error if
+    # Unique sets, from hooks data. Notation is to match mathematical notation
+    #  in the assessment, with subscript i being set and t being year.
+    #  H_itOut is number of hooks that were put out (for set i and year t)
+    #  H_itObs is the same for those that got observed.
+    #  Will give error if
     #  unique(effSkate) not a single value. H_itObsChum is observed hooks
     #  that had chum on. K_itAll is number of skates (all bait), K_itChum is
-    #  number of skates with chum. N_itAll is number of spCode fish in set
-    #  using all skates, N_itChum is just based on chum. 
+    #  number of skates with chum. N_itAll is number of spCode fish in the set
+    #  using all skates, N_itChum is just based on chum.
+
 if( dim(unique(select(data, year, station)))[1] != dim(setUniqHooks)[1])
                                      { stop("check setUniqHooks")}
-# Add column to make effSkateChum only be based on Chum bait:
+
+# Add column to make effSkateChum only be based on Chum bait (correction factor
+#  to account for some skates having different bait):
 setUniqHooks = mutate(setUniqHooks, effSkateChum = effSkate * 
     H_itObsChum / H_itObs)
-setUniqHooks = arrange(setUniqHooks, year, station) # in case didn't stay in order
-# Early effSkateChum won't change:
-# data.frame(head(setUniqHooks))
-# 2012 effSkateChum now relate to number of observed chum-bait hooks (next section)
+
+# Use arrange() to put in order (though it should still be in this order).
+setUniqHooks = arrange(setUniqHooks, year, station)
+
+# 2012 effSkateChum now relate to number of observed chum-bait hooks: 
 data.frame(head(filter(setUniqHooks, year == 2012)))
-# For 2012, all K_itChum values seem to be 4:
+
+# For 2012, all K_itChum values seem to be 4 (always 4 skates with chum):
 summary((filter(setUniqHooks, year == 2012))$K_itChum)
 
-# Can see above that for 2012, station 2002, the three Redbanded were caught on non-Chum skates. 
+# Earlier we looked at year 2012, station 2002:
+data.frame(head( filter(skateUniqHooks, year == 2012, station == 2002)))
+# There are 6 fish of our species caught altogether, but only four
+#  are on the skates with chum bait (bait = 110)
 
-# \subsection{Check that {\tt effSkateChum} is somewhat consistent with number of observed chum-bait hooks}
- 
-# Estimate the effective skate number based on just the number of observed chum-bait hooks, then look at examples that differ from given values by $>1$ or $>0.5$.
+# Looking at the set level data, it agrees:
+data.frame(head( filter(setUniqHooks, year == 2012, station == 2002)))
+# N_itAll = 6, the number of fish caught with all bait; N_itChum = 4, the number
+#  of fish caught with Chum.
 
-setUniqHooksSamp = mutate(setUniqHooks, estEffSkateChum = H_itObsChum/100)
-as.data.frame(filter(setUniqHooksSamp, abs(estEffSkateChum - effSkateChum) > 1))
-as.data.frame(filter(setUniqHooksSamp, abs(estEffSkateChum - effSkateChum) >0.5))
-
-# Only a few examples (others should have been sorted out in manual tidying up before), I'd thought there might be more. None look too bad, station 2101 suggests a typo, but leave for now as not hugely in error.
-
-# And for 2012, it shouldn't be much more than 4:
-
-summary(filter(setUniqHooks, year == 2012)$effSkateChum)  
-
-# Looks okay.
-
-# \subsection{So we have {\tt setUniqHooks} okay, with counts for \Sexpr{spName}; now define notation}\label{sec:notation}
 
 setUniqHooks
 
-# \subsection{Create index value for each year}
+# Now want to create an index value for each year. First simplify to have a
+#  set-level dataframe with what we will need:
 
-# Simplify to give a set-level dataframe with the correct terminology, containing just what is needed now:
-
-setVals0314 = select(setUniqHooks, year=year, station=station, # H_it = H_itObsChum, 
+setVals0314 = select(setUniqHooks, year=year,
+    station=station,
     E_it = effSkateChum, N_it = N_itChum)
+
+# Add a column C_it for the catch rate, the number of fish caught divided by
+#  the effective skate number (Chum only, as in the above line).
 setVals0314 = mutate(setVals0314, C_it = N_it / E_it)
+
 setVals0314
 
 
+#
 # \subsubsection{Filter locations geography, to determine {\tt setVals0314keep}} 
-         % Need all the setVals0314 for the maps
+#         % Need all the setVals0314 for the maps
 
-# stationLocs0314 - a dataframe corresponding to each survey station 
-#  (called a  station), giving the longitude and latitude for each station, with
+# stationLocs0314 - a dataframe corresponding to each survey station ,
+#  giving the longitude and latitude for each station, with
 #  an allowable range. The locations do not change each year (so there is no
 #  year in here).
+#
 
+#stationLocs0314[stationLocs0314$lat < latCutOff, "keep"] = 0    # don't keep some
 
-stationLocs0314[stationLocs0314$lat < latCutOff, "keep"] = 0    # don't keep some
-
-setVals0314keep= filter(setVals0314, station %in% 
-    filter(stationLocs0314, keep == 1)$station)  # Keep only stations in geog. region
-# data = filter(dataOrig, station %in% 
+#setVals0314keep= filter(setVals0314, station %in% 
 #    filter(stationLocs0314, keep == 1)$station)  # Keep only stations in geog. region
 
 yearVals0314keep = summarise(group_by(setVals0314keep, year), n_t = n(), 
     setsWithSp = sum(N_it != 0), sum.C_it = sum(C_it))
 
-#% For Redbanded:
-#% So after doing everything at the hook-by-hook level, making corrections, accounting for bait, etc., compared to the same calculations at the set-by-set level (a few weeks ago):
 
-#% {\tt setsWithSp} is the same, except 69 and 63 now was 70 and 71 for 2011 and 2012.
-
-#% {\tt sum.C\_it} is exactly the same for 2003, 2005, 2007-2010, $<1$ different for 2004, 2006, and for 2011 was 162.44 (just $>1$ less and for 2012 was 141.20, so 20 less. The final value is clearly important to have correct -- set-level calculation didn't account for the bait experiment, and couldn't do because the data was already rolled up at the set level.
-
-#<<index>>=
 yearVals0314keep = mutate(yearVals0314keep, I_t = sum.C_it / n_t)
 yearVals0314keep
  
 
 
-# For RBR: So the lowest year is 2007, whereas original calculation from the set-level data had 2012 as lowest. Note that can't use the {\tt setsWithSp} values here for 2012 to compare to other years because less skates with Chum so less to choose from -- would have to calculate something like that at the skate level, to look at proportion of empty skates.
-
-
-# \section{Now combine for sets keeping for 1995, 1996 and 2003+}
-setValsKeep = rbind(setVals1995keep, setVals1996keep, setVals0314keep)
-
-# % This was from IPHCjoin6.Snw.   Want it for the bootstrapping. And I think for the Keep for 03-12
-
-# \section{How many stations never catch a \Sexpr{spName} for 2003 onwards?}
-
-# % Modifying from the 20-hook version, which presumably came from earlier full hook version. Add ..keep to things here.
-
-# Now to investigate stations that never catch a \Sexpr{spName} for the stations being considered. Do for 2003$+$ ({\tt zeroStations0314}) etc, and easy to just filter on the 1995 and 1996 data. [At one point may have had {\tt zeroStations} containing all, but that doesn't make sense since names aren't consistent between years, so maybe things just got moved around].
-# % , but be aware that station names are different in 1995, 1996 and for 2003$+$. Check that none overlap:% Should do as map, not doing figure as gets messed up with funny station names for 1995 (and presumably 1996) data.
-
-#<<zeroStations0314>>=
-# THESE WERE ALREADY COMMENTED....
-# yyy1 = intersect(filter(setValsKeep, year == 1995)$station, 
-#    filter(setValsKeep, year == 1996)$station) 
-#yyy2 = intersect(filter(setValsKeep, year == 1995)$station, 
-#    filter(setValsKeep, year == 2003)$station) 
-# yyy3 = intersect(filter(setValsKeep, year == 1996)$station, 
-#    filter(setValsKeep, year == 2003)$station) # stations are same for 2003 onwards
-# if(length(yyy1) + length(yyy2) + length(yyy3) > 0) stop("check station names")
-# stationValsKeep = summarise(group_by(setValsKeep, station), totalN_it = sum(N_it))
-# postscript("stationValsKeep.eps", height = figheight, width = figwidth,
-#           horizontal=FALSE,  paper="special")  
-# plot(filter(stationValsKeep, totalN_it > 0), col="blue", xlab="Station", 
-#     ylab="Numbers caught in each station from 2003 onwards")
-# points(filter(stationValsKeep, totalN_it == 0), col="red", pch=20)
-# dev.off()
-# END OF WHAT WAS ALREADY COMMENTED
 stationVals0314 = summarise(group_by(setVals0314, station), totalN_it = sum(N_it))
 zeroStations0314 = filter(stationVals0314, totalN_it == 0)$station # Stations always 0
 nonZeroStations0314 = filter(stationVals0314, totalN_it > 0)$station  # Stations with catch
@@ -671,4 +805,17 @@ print(xxxxbcaKeepTab, table.placement="tp", caption.placement="top",
 # @ 
 
 # save.image(file="iphcSerBallHooksYYR.RData")
+
+
+
+# Now to look at a particular species:
+# Comment in one of these lines (shortName is for figure legends):
+# spCode=401; spName="Redbanded Rockfish"; shortName = "Redbanded"; spCodeIphc=90; spAbbr = RBR
+spCode=442; spName="Yelloweye Rockfish"; shortName = "Yelloweye"; spCodeIphc=89; spAbbr = "No YYR" 
+# spCode = 614; spName = "Pacific Halibut"; shortName = "Halibut"; spCodeIphc=1; spAbbr = "HAL" 
+# spCode = 044; spName = "North Pacific Spiny Dogfish"; shortName = "Dogfish"; spCodeIphc=54; spAbbr = "DOG"    # Get error in bca.ci, expected adjustment 'w' is infinite - for HAL too.
+
+latCutOff = 50.6; lon1=-130; lon2=-128.25 # a latitude cut-off value to 
+#  divide the area into northern and southern areas. lon1 and lon2 are to help
+#  draw a line on a map.
 
