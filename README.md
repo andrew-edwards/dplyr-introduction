@@ -14,6 +14,8 @@ If you use GitHub then feel free to fork and commit updates!
 
 **README.md** - this file that you are reading. It should be readable on the website, but maybe not on your laptop. Just paste it into a .txt file and view in an editor. 
 
+**.gitignore** - if you don't know what this is then just ignore it. 
+
 If something doesn't work or requires more explanation (likely!) then let me know and I can update the code on this site. If I had more time then I could have created  simpler example code, but it was quicker to adapt what I already had. 
 
 
