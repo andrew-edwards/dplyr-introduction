@@ -20,11 +20,23 @@ Files are:
 
 If something doesn't work or requires more explanation (likely!) then let me know and I can update the code on this site. If I had more time then I could have created  simpler example code, but it was quicker to adapt what I already had. 
 
+## Further information 
+
 There are tutorials on the web. One by Sean Anderson that has info about the chaining %>% command is:
 
 <http://seananderson.ca/2014/09/13/dplyr-intro.html>
 
 I think he had an earlier version that I first learnt from, but I can't see it right now.
- 
+
+The one that I think I first learnt **dplyr** from is
+
+<https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html> 
+
+Both the above have formatted notes that can be printed.
+
+The cheat sheet that Brooke mentioned is at:
+
+<https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf>
+
 
 
