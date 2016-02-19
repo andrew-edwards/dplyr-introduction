@@ -22,7 +22,7 @@ If something doesn't work or requires more explanation (likely!) then let me kno
 
 ## Further information 
 
-There are tutorials on the web. One by Sean Anderson that has info about the chaining %>% command is:
+There are tutorials on the web. One by Sean Anderson that has info about the chaining %>% command that Matt demonstrated is:
 
 <http://seananderson.ca/2014/09/13/dplyr-intro.html>
 
