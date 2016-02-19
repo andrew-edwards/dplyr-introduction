@@ -20,7 +20,11 @@ Files are:
 
 If something doesn't work or requires more explanation (likely!) then let me know and I can update the code on this site. If I had more time then I could have created  simpler example code, but it was quicker to adapt what I already had. 
 
+There are tutorials on the web. One by Sean Anderson that has info about the chaining %>% command is:
 
+<http://seananderson.ca/2014/09/13/dplyr-intro.html>
+
+I think he had an earlier version that I first learnt from, but I can't see it right now.
  
 
 
