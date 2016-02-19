@@ -8,6 +8,8 @@ To save the code and data (and this file) just click 'Download ZIP' in the top-r
 
 If you use GitHub then feel free to fork and commit updates! 
 
+Files are:
+
 **dummyData.RData** - dummy data set, based on a set of longline survey data. Values have been generated, and so are not the original data; the data set is just for illustration of the dplyr packageR .
 
 **dplyr-introduction.r** - R file to demonstrate some of the features of dplyr. Step through it one line at a time; i.e. do not just do **source("dplyr-introduction.r")** like you would normally with code.
